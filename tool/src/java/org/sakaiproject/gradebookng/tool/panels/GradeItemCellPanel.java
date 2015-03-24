@@ -4,11 +4,11 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.attributes.AjaxRequestAttributes;
 import org.apache.wicket.extensions.ajax.markup.html.AjaxEditableLabel;
-import org.apache.wicket.markup.html.basic.Label;
-import org.apache.wicket.markup.html.link.ExternalLink;
+import org.apache.wicket.Component;
 import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.spring.injection.annot.SpringBean;
+import org.apache.wicket.ajax.attributes.AjaxCallListener;
 import org.sakaiproject.gradebookng.business.GradebookNgBusinessService;
 import org.sakaiproject.gradebookng.tool.model.GradeInfo;
 import org.sakaiproject.gradebookng.tool.model.StudentGradeInfo;
@@ -72,6 +72,28 @@ public class GradeItemCellPanel extends Panel {
 				Map<String,Object> extraParameters = attributes.getExtraParameters();
 				extraParameters.put("assignmentId", assignmentId);
 				extraParameters.put("studentUuid", studentGrades.getStudentUuid());
+
+        AjaxCallListener myAjaxCallListener = new AjaxCallListener() {
+          @Override
+          public CharSequence getBeforeSendHandler(Component component) {
+            return "GradebookWicketEventProxy.updateLabel.handleBeforeSend('" + component.getMarkupId() + "', attrs, jqXHR, settings);";
+          }
+
+          @Override
+          public CharSequence getSuccessHandler(Component component) {
+            return "GradebookWicketEventProxy.updateLabel.handleSuccess('" + component.getMarkupId() + "', attrs, jqXHR, data, textStatus);";
+          }
+
+          @Override
+          public CharSequence getFailureHandler(Component component) {
+            return "GradebookWicketEventProxy.updateLabel.handleFailure('" + component.getMarkupId() + "', attrs, jqXHR, errorMessage, textStatus);";
+          }
+          @Override
+          public CharSequence getCompleteHandler(Component component) {
+            return "GradebookWicketEventProxy.updateLabel.handleComplete('" + component.getMarkupId() + "', attrs, jqXHR, textStatus);";
+          }
+        };
+        attributes.getAjaxCallListeners().add(myAjaxCallListener);
 			}
 			
 			@Override
@@ -80,9 +102,30 @@ public class GradeItemCellPanel extends Panel {
 				Map<String,Object> extraParameters = attributes.getExtraParameters();
 				extraParameters.put("assignmentId", assignmentId);
 				extraParameters.put("studentUuid", studentGrades.getStudentUuid());
+
+
+        AjaxCallListener myAjaxCallListener = new AjaxCallListener() {
+          @Override
+          public CharSequence getBeforeSendHandler(Component component) {
+            return "GradebookWicketEventProxy.updateEditor.handleBeforeSend('" + component.getMarkupId() + "', attrs, jqXHR, settings);";
+          }
+
+          @Override
+          public CharSequence getSuccessHandler(Component component) {
+            return "GradebookWicketEventProxy.updateEditor.handleSuccess('" + component.getMarkupId() + "', attrs, jqXHR, data, textStatus);";
+          }
+
+          @Override
+          public CharSequence getFailureHandler(Component component) {
+            return "GradebookWicketEventProxy.updateEditor.handleFailure('" + component.getMarkupId() + "', attrs, jqXHR, errorMessage, textStatus);";
+          }
+          @Override
+          public CharSequence getCompleteHandler(Component component) {
+            return "GradebookWicketEventProxy.updateEditor.handleComplete('" + component.getMarkupId() + "', attrs, jqXHR, textStatus);";
+          }
+        };
+        attributes.getAjaxCallListeners().add(myAjaxCallListener);
 			}
-			
-			
 		};
 		
 		grade.setType(String.class);
