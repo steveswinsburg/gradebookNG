@@ -594,53 +594,63 @@ public class GradebookNgBusinessService {
      * @throws PermissionException
      */
     public void updateAssignmentOrder(String siteId, long assignmentId, int order) throws JAXBException, IdUnusedException, PermissionException {
-    	
-    	Site site = null;
-		try {
-			site = this.siteService.getSite(siteId);
-		} catch (IdUnusedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return;
-		}
-		
-		ResourcePropertiesEdit props = site.getPropertiesEdit();
-    	String xml = props.getProperty(ASSIGNMENT_ORDER_PROP);
-    	
-    	List<AssignmentOrder> assignmentOrder = new ArrayList<>();
-    	if(StringUtils.isNotBlank(xml)) {
-    		XmlList<AssignmentOrder> xmlList = (XmlList<AssignmentOrder>) XmlMarshaller.unmarshall(xml);
-    		if(xmlList != null) {
-    			assignmentOrder = xmlList.getItems();
-    		}
-    	}
-    	
-    	//try to update an existing order
-    	boolean matched = false;
-    	for(AssignmentOrder as: assignmentOrder) {
-    		if(as.getAssignmentId() == assignmentId) {
-    			matched = true;
-    			as.setOrder(order);
-    		}
-    	}
-    	
-    	//otherwise add it
-    	if(!matched) {
-    		assignmentOrder.add(new AssignmentOrder(assignmentId, order));
-    	}
-    	
-    	//serialise the XmlList back to xml
-    	XmlList<AssignmentOrder> updatedXmlList = new XmlList<AssignmentOrder>(assignmentOrder);
-    	String updatedXml = XmlMarshaller.marshal(updatedXmlList);
-		
-		//and save it
-		props.addProperty(ASSIGNMENT_ORDER_PROP, updatedXml);
-		
-		log.debug("Updated assignment order: " + updatedXml);
-		
-		this.siteService.save(site);
-    	
+      Gradebook gradebook = (Gradebook)gradebookService.getGradebook(siteId);
+      List<Assignment> assignments = gradebookService.getAssignments(gradebook.getUid());
+      List<Assignment> sortedAssignments = sortAssignments(siteId, assignments);
+
+      Assignment assignmentToMove = null;
+      for (Assignment assignment : sortedAssignments) {
+        if (assignment.getId().equals(assignmentId)) {
+          assignmentToMove = assignment;
+          break;
+        }
+      }
+
+      if (assignmentToMove == null) {
+        // TODO Handle assignment not in gradebook
+        log.error(String.format("Assignment %d not in site %s", assignmentId, siteId));
+        return;
+      }
+
+      sortedAssignments.remove(assignmentToMove);
+      sortedAssignments.add(order, assignmentToMove);
+
+      storeAssignmentsOrder(siteId, sortedAssignments);
     }
+
+  /**
+   * Store assignments order as XML on a site property
+   *
+   * @param siteId	the siteId
+   * @param assignments a list of assignments in their new order
+   * @throws JAXBException
+   * @throws IdUnusedException
+   * @throws PermissionException
+   */
+  private void storeAssignmentsOrder(String siteId, List<Assignment> assignments) throws JAXBException, IdUnusedException, PermissionException {
+    Site site = null;
+    try {
+      site = this.siteService.getSite(siteId);
+    } catch (IdUnusedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+      return;
+    }
+
+    List<AssignmentOrder> assignmentOrders = new ArrayList<AssignmentOrder>();
+    for (int i = 0; i < assignments.size(); i++) {
+      assignmentOrders.add(new AssignmentOrder(assignments.get(i).getId(), i));
+    }
+
+    XmlList<AssignmentOrder> newXmlList = new XmlList<AssignmentOrder>(assignmentOrders);
+    String newXml = XmlMarshaller.marshal(newXmlList);
+
+    ResourcePropertiesEdit props = site.getPropertiesEdit();
+    props.addProperty(ASSIGNMENT_ORDER_PROP, newXml);
+
+    log.debug("Updated assignment order: " + newXml);
+    this.siteService.save(site);
+  }
     
     /*
     public GradebookUiConfiguration getGradebookUiConfiguration() {
